@@ -441,7 +441,11 @@ def parallelize_model(
 
         model = fully_shard(model, **fsdp_config, reshard_after_forward=True)
 
+        # Enabling forward prefetcing for all modules.
         model.set_modules_to_forward_prefetch(modules)
+
+        # Enabling backward prefetching for all modules.
+        model.set_modules_to_backward_prefetch(modules)
     else:
         raise ValueError(f"Invalid fsdp_type: {distributed_args.fsdp_type}")
 
