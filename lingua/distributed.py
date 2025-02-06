@@ -63,6 +63,7 @@ class DistributedArgs:
     )
     tp_size: int = 1
     selective_activation_checkpointing: bool = False
+    forward_prefetch: bool = True
     compile: bool = False
     fsdp_type: str = "no_shard"
     model_dtype: str = "bf16"
@@ -153,6 +154,8 @@ def get_is_slurm_job() -> bool:
 @lru_cache()
 def get_is_ray_job() -> bool:
     return "RAY_JOB_ID" in os.environ
+
+
 @lru_cache()
 def get_global_rank() -> int:
     if get_is_torch_run():
@@ -445,7 +448,8 @@ def parallelize_model(
         model = fully_shard(model, **fsdp_config, reshard_after_forward=True)
 
         # Enabling forward prefetcing for all modules.
-        model.set_modules_to_forward_prefetch(modules)
+        if distributed_args.forward_prefetch:
+            model.set_modules_to_forward_prefetch(modules)
 
         # Enabling backward prefetching for all modules.
         model.set_modules_to_backward_prefetch(modules)
