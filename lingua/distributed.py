@@ -151,6 +151,9 @@ def get_is_slurm_job() -> bool:
 
 
 @lru_cache()
+def get_is_ray_job() -> bool:
+    return "RAY_JOB_ID" in os.environ
+@lru_cache()
 def get_global_rank() -> int:
     if get_is_torch_run():
         return int(os.environ["RANK"])
