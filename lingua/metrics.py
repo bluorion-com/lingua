@@ -1,19 +1,19 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
 
+import json
 import logging
 from collections import namedtuple
-from dataclasses import dataclass, asdict
-from typing import Dict, Any, List, Optional, Union
-from pathlib import Path
-import json
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
+import wandb
 
 from lingua.distributed import get_is_master
-import wandb
 
 logger = logging.getLogger()
 
@@ -61,11 +61,7 @@ class MetricLogger:
     def open(self):
         if self.jsonl_writer is None:
             self.jsonl_writer = open(self.outdir, "a")
-        if (
-            self.args is not None
-            and self.args.logging.wandb is not None
-            and get_is_master()
-        ):
+        if self.args is not None and self.args.logging.wandb is not None and get_is_master():
             run = wandb.init(
                 config=asdict(self.args),
                 **asdict(self.args.logging.wandb),
@@ -121,9 +117,7 @@ class GPUMemoryMonitor:
         self.device = torch.device(device)  # device object
         self.device_name = torch.cuda.get_device_name(self.device)
         self.device_index = torch.cuda.current_device()
-        self.device_capacity = torch.cuda.get_device_properties(
-            self.device
-        ).total_memory
+        self.device_capacity = torch.cuda.get_device_properties(self.device).total_memory
         self.device_capacity_gib = self._to_gib(self.device_capacity)
 
         # reset stats, clear cache
@@ -175,20 +169,19 @@ class GPUMemoryMonitor:
 
     def __str__(self):
         mem_stats = self.get_peak_stats()
-        display_str = f"{self.device_name} ({self.device_index}): {self.device_capacity_gib} GiB capacity, "
-        display_str += (
-            f"{mem_stats.max_reserved_gib} GiB peak, {mem_stats.max_reserved_pct}% peak"
+        display_str = (
+            f"{self.device_name} ({self.device_index}): {self.device_capacity_gib} GiB capacity, "
         )
+        display_str += f"{mem_stats.max_reserved_gib} GiB peak, {mem_stats.max_reserved_pct}% peak"
         return f"{display_str}"
 
 
-def upload_train_to_wandb(
-    ckpt_dir, project="lingua", entity="codegen-team", train=True, eval=True
-):
-    import wandb
-    from omegaconf import OmegaConf
+def upload_train_to_wandb(ckpt_dir, project="lingua", entity="codegen-team", train=True, eval=True):
     import json
     from pathlib import Path
+
+    import wandb
+    from omegaconf import OmegaConf
 
     cfg = OmegaConf.load(Path(ckpt_dir) / "config.yaml")
     cfg = OmegaConf.to_container(cfg)
