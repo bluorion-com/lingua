@@ -64,6 +64,7 @@ class DistributedArgs:
     tp_size: int = 1
     selective_activation_checkpointing: bool = False
     forward_prefetch: bool = True
+    backward_prefetch: bool = False
     compile: bool = False
     fsdp_type: str = "no_shard"
     model_dtype: str = "bf16"
@@ -452,7 +453,8 @@ def parallelize_model(
             model.set_modules_to_forward_prefetch(modules)
 
         # Enabling backward prefetching for all modules.
-        model.set_modules_to_backward_prefetch(modules)
+        if distributed_args.backward_prefetch:
+            model.set_modules_to_backward_prefetch(modules)
     else:
         raise ValueError(f"Invalid fsdp_type: {distributed_args.fsdp_type}")
 
